@@ -1,0 +1,4 @@
+#separator:tab
+#html:true
+#notetype column:1
+Mandarin	客厅	sala de estar	kètīng	[sound:https://translate.google.com/translate_tts?ie=UTF-8&amp;q=客厅&amp;tl=zh-CN&amp;client=tw-ob]	<img src="https://www.strokeorder.com/assets/bishun/animation/23458.gif"> <img src="https://www.strokeorder.com/assets/bishun/animation/21381.gif"> 	客: hóspede<br>厅: sala

@@ -1,0 +1,6 @@
+.venv/
+flashcards.apkg
+__pycache__/
+*.mp3
+*.pyc
+
