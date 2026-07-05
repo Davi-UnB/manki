@@ -1,9 +1,15 @@
+import os
+from dotenv import load_dotenv
+
+# Carrega as variáveis do arquivo .env (se existir)
+load_dotenv()
+
 class Config:
     """Configurações globais da aplicação."""
     # ==========================
     # ESCOLHA DO PROVEDOR DE IA
     # ==========================
-    USE_GEMINI = False  # Mude para True para usar a API do Google Gemini
+    USE_GEMINI = True  # Mude para True para usar a API do Google Gemini
     
     # Configurações LM Studio (Local)
     OPENAI_BASE_URL = "http://localhost:1234/v1"
@@ -11,8 +17,9 @@ class Config:
     MODEL_NAME = "qwen3.5/9b"
     
     # Configurações Gemini (Nuvem)
-    GEMINI_API_KEY = "COLOQUE_SUA_CHAVE_AQUI"
-    GEMINI_MODEL_NAME = "gemini-3.1-pro"
+    # Agora a chave será lida automaticamente do arquivo .env
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL_NAME = "gemini-3.5-flash"
 
     # ==========================
     # ANKI
