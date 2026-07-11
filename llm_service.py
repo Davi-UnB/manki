@@ -21,7 +21,9 @@ class LLMService:
             "Regras para a frase: Crie uma frase de exemplo clara, natural e útil. "
             "Utilize vocabulário e gramática focados no nível HSK 3. "
             "Não limite a frase apenas a pronomes básicos, mas também evite palavras "
-            "muito avançadas ou raras (HSK 5+). A frase deve demonstrar o uso real da palavra."
+            "muito avançadas ou raras (HSK 5+). A frase deve demonstrar o uso real da palavra.\n"
+            "Regras para a tradução: O campo 'traducao' deve conter EXCLUSIVAMENTE o significado da palavra "
+            "isolada, em INGLÊS. NÃO traduza a frase de exemplo. Retorne apenas definições curtas em inglês."
         )
 
     def fetch_data(self, word: str) -> FlashcardData:
