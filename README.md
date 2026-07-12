@@ -77,22 +77,59 @@ O projeto utiliza Inteligência Artificial (LLMs locais via LM Studio ou nuvem v
 
 ## 🎯 Como Usar
 
-1.  Com o ambiente virtual ativo, execute o script principal:
-    ```bash
-    python main.py
-    ```
+Você pode usar o **Manki** de duas formas: através de um arquivo de entrada (recomendado e mais flexível) ou de forma interativa via terminal.
 
-2.  Digite as palavras em chinês que deseja transformar em flashcards, separadas por espaços simples. Exemplo:
-    ```text
-    Insira as palavras (separadas por espaços): 电脑 苹果 飞机
-    ```
+### Opção A: Usando arquivo de entrada (Recomendado)
 
-3.  O programa irá processar cada palavra:
-    *   Consultará a IA para obter frases, pinyin e tradução.
-    *   Gerará os áudios correspondentes.
-    *   Buscará a animação da escrita dos traços.
-    *   Inserirá tudo no deck.
+Esta opção permite gerar flashcards em lote e definir **frases de exemplo customizadas** para cada caractere.
 
-4.  Ao final do processo, um arquivo chamado `flashcards.apkg` será gerado no diretório atual.
+1. Crie um arquivo de texto (por padrão chamado `input.txt`) na raiz do projeto.
+2. Escreva as palavras e frases no formato `palavra: frase` (uma por linha). Você também pode passar apenas a palavra e deixar a IA gerar a frase para você. Linhas em branco ou iniciadas com `#` são ignoradas.
 
-5.  Abra o **Anki** no seu computador, vá em **Arquivo > Importar...** e selecione o arquivo `flashcards.apkg`.
+   **Exemplo de `input.txt`**:
+   ```text
+   作弊: 你真的作弊了
+   亮: 还真能亮
+   性格: 挺有性格
+   # Esta palavra não tem frase customizada; a IA criará uma focada em HSK 3
+   减肥
+   散会: 我说散会了吗
+   ```
+
+3. Com o ambiente virtual ativo, execute o script principal. Ele detectará automaticamente o arquivo `input.txt` na raiz:
+   ```bash
+   python main.py
+   ```
+
+   *Dica: Você também pode usar um arquivo com outro nome e passá-lo como argumento:*
+   ```bash
+   python main.py meus_cards.txt
+   ```
+
+---
+
+### Opção B: Entrada interativa via Terminal
+
+Se o arquivo `input.txt` (ou o especificado) não for encontrado, o script entrará automaticamente no modo interativo:
+
+1. Execute o script:
+   ```bash
+   python main.py
+   ```
+2. Digite as palavras que deseja processar, separadas por espaços:
+   ```text
+   Insira as palavras (separadas por espaços): 电脑 苹果 飞机
+   ```
+
+---
+
+### Processamento e Importação
+
+Para qualquer uma das opções acima, o programa irá:
+1. Consultar a IA para obter ou validar as frases de exemplo, pinyin correspondente e traduções.
+2. Gerar os áudios `.mp3` correspondentes para a palavra e para a frase.
+3. Buscar na web as animações de ordem dos traços dos caracteres.
+4. Adicionar os cartões e gerar o arquivo `flashcards.apkg` na raiz do projeto.
+
+Para utilizar no Anki:
+- Abra o **Anki** no computador, vá em **Arquivo > Importar...** e escolha o arquivo `flashcards.apkg`.

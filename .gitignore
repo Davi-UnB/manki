@@ -4,5 +4,8 @@ __pycache__/
 *.mp3
 *.pyc
 
-
 .env
+
+# Arquivos de entrada temporários do usuário
+input.txt
+*.txt

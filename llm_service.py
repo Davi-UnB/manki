@@ -26,14 +26,22 @@ class LLMService:
             "isolada, em INGLÊS. NÃO traduza a frase de exemplo. Retorne apenas definições curtas em inglês."
         )
 
-    def fetch_data(self, word: str) -> FlashcardData:
+    def fetch_data(self, word: str, custom_sentence: str = None) -> FlashcardData:
         if self.use_gemini:
-            return self._fetch_gemini(word)
+            return self._fetch_gemini(word, custom_sentence)
         else:
-            return self._fetch_openai(word)
+            return self._fetch_openai(word, custom_sentence)
 
-    def _fetch_gemini(self, word: str) -> FlashcardData:
-        prompt_user = f"{self.system_prompt}\n\nGere as informações para a palavra em chinês: {word}"
+    def _fetch_gemini(self, word: str, custom_sentence: str = None) -> FlashcardData:
+        if custom_sentence:
+            prompt_user = (
+                f"{self.system_prompt}\n\n"
+                f"Gere as informações para a palavra em chinês: {word}\n"
+                f"IMPORTANTE: Você deve usar OBRIGATORIAMENTE a seguinte frase de exemplo fornecida pelo usuário no campo 'frase_caracteres': {custom_sentence}\n"
+                f"Preencha o campo 'frase_pinyin' com o pinyin correto dessa frase fornecida."
+            )
+        else:
+            prompt_user = f"{self.system_prompt}\n\nGere as informações para a palavra em chinês: {word}"
         
         response_schema = Schema(
             type=Type.OBJECT,
@@ -57,8 +65,15 @@ class LLMService:
         )
         return FlashcardData.model_validate_json(response.text)
 
-    def _fetch_openai(self, word: str) -> FlashcardData:
-        prompt_user = f"Gere as informações para a palavra em chinês: {word}"
+    def _fetch_openai(self, word: str, custom_sentence: str = None) -> FlashcardData:
+        if custom_sentence:
+            prompt_user = (
+                f"Gere as informações para a palavra em chinês: {word}\n"
+                f"IMPORTANTE: Você deve usar OBRIGATORIAMENTE a seguinte frase de exemplo fornecida pelo usuário no campo 'frase_caracteres': {custom_sentence}\n"
+                f"Preencha o campo 'frase_pinyin' com o pinyin correto dessa frase fornecida."
+            )
+        else:
+            prompt_user = f"Gere as informações para a palavra em chinês: {word}"
         
         try:
             response = self.openai_client.chat.completions.create(
