@@ -1,0 +1,8 @@
+requests
+lxml
+gTTS
+pydantic
+openai
+google-genai
+python-dotenv
+genanki
