@@ -1,11 +1,21 @@
+# Ambiente
 .venv/
-flashcards.apkg
-__pycache__/
-*.mp3
-*.pyc
-
 .env
+.idea/
+.DS_Store
 
-# Arquivos de entrada temporários do usuário
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Artefatos gerados
+*.apkg
+*.mp3
+
+# Entradas do usuário
 input.txt
-*.txt
+input*.txt

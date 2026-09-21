@@ -1,135 +1,144 @@
 # Manki - Gerador Automático de Flashcards de Mandarim para o Anki
 
-**Manki** é uma ferramenta modular em Python desenvolvida para automatizar a criação de flashcards de Mandarim (chinês simplificado) altamente informativos e prontos para serem importados no **Anki**.
+**Manki** é uma ferramenta em Python que automatiza a criação de flashcards de Mandarim (chinês simplificado) prontos para importar no **Anki**.
 
-O projeto utiliza Inteligência Artificial (LLMs locais via LM Studio ou nuvem via Google Gemini) para criar frases de exemplo contextuais (focadas no nível HSK 3) com pinyin e tradução para o inglês, além de enriquecer cada cartão com áudio falado (TTS) e imagens que ensinam a ordem dos traços de escrita de cada caractere.
+Cada palavra vira um cartão com frase de exemplo contextual (nível HSK 3), pinyin, tradução para o inglês, áudio da palavra e da frase (TTS) e a animação da ordem dos traços de cada caractere.
 
 ---
 
 ## 🚀 Funcionalidades
 
-1. **Geração de Conteúdo Inteligente (LLM)**:
-   - Tradução da palavra de forma isolada para o inglês.
-   - Criação de uma frase natural de exemplo usando a palavra estudada (adequada ao nível HSK 3).
-   - Conversão da frase para Pinyin.
-2. **Geração Automática de Áudios (TTS)**:
-   - Gravação de áudios em formato `.mp3` para a pronúncia da palavra isolada e da frase de exemplo em chinês simplificado.
-3. **Ordem de Escrita dos Traços (Stroke Order)**:
-   - Extração automática de animações e imagens demonstrando como escrever cada caractere a partir do site *Stroke Order*.
-4. **Empacotamento Automático para o Anki (`.apkg`)**:
-   - Cria um baralho formatado e estilizado com campos dedicados para áudio, pinyin, caracteres e traços de escrita.
+1. **Geração de conteúdo por LLM**: tradução da palavra isolada, frase de exemplo natural (HSK 3) e o pinyin correspondente. Provedores suportados: DeepSeek, Groq, OpenAI, LM Studio (local) e Google Gemini.
+2. **Áudio automático (TTS)**: `.mp3` para a palavra e para a frase, via `gTTS`.
+3. **Ordem dos traços**: animações extraídas de *strokeorder.com*, com cache por caractere e novas tentativas automáticas.
+4. **Empacotamento `.apkg`**: baralho formatado com campos dedicados para áudio, pinyin, caracteres e traços.
+5. **Processamento paralelo**: as palavras do lote são processadas simultaneamente; uma falha isolada não interrompe as demais.
 
 ---
 
-## 📂 Estrutura do Projeto
+## 📂 Arquitetura
 
-*   **`main.py`**: Ponto de entrada do script que interage com o usuário, lê as palavras e coordena o fluxo de criação.
-*   **`config.py`**: Gerenciamento de chaves de API, variáveis de ambiente e parâmetros do Anki (IDs do modelo e do baralho).
-*   **`models.py`**: Define o modelo de dados dos flashcards estruturado com **Pydantic**.
-*   **`llm_service.py`**: Gerencia a comunicação com as APIs de LLM (Google Gemini ou LM Studio / OpenAI).
-*   **`audio_service.py`**: Responsável pela geração de arquivos de áudio em mandarim usando `gTTS`.
-*   **`scraper_service.py`**: Realiza o scraping no site *Stroke Order* para obter o passo a passo da escrita dos ideogramas.
-*   **`anki_builder.py`**: Cria a estrutura do deck, associa mídias e exporta o pacote final no formato `.apkg`.
+O projeto segue *ports & adapters*: o pipeline depende apenas de interfaces (`manki.domain.ports`), e as implementações concretas são injetadas pela CLI. Trocar de provedor de LLM, de TTS ou da fonte de traços não exige tocar na lógica de orquestração.
+
+```
+src/manki/
+├── cli.py              # Argumentos, composição das dependências e códigos de saída
+├── config.py           # Settings a partir de .env/ambiente + presets por provedor
+├── pipeline.py         # Orquestração: palavras → cartões (paralelo, tolerante a falhas)
+├── errors.py           # Hierarquia de exceções do domínio
+├── logging_setup.py    # Configuração de logging
+├── domain/
+│   ├── models.py       # WordRequest, FlashcardData (Pydantic), CardAssets, Card
+│   └── ports.py        # Protocolos: LLMProvider, AudioSynthesizer, StrokeOrderProvider, DeckBuilder
+├── inputs/parser.py    # Leitura e interpretação do arquivo de entrada
+├── providers/
+│   ├── llm/            # prompts.py + adaptadores OpenAI-compatível e Gemini + factory
+│   ├── audio/          # gTTS
+│   └── strokes/        # scraping de strokeorder.com (sessão com retry e timeout)
+└── anki/
+    ├── deck.py         # Montagem e exportação com genanki
+    └── templates.py    # Campos, templates e CSS do tipo de nota
+tests/                  # Testes com dublês das portas — nenhuma chamada de rede
+```
+
+Decisões relevantes:
+
+- **Provedor por configuração, não por código**: cada provedor tem um preset (URL base, modelo padrão, variável da chave e o modo de saída estruturada que suporta) em `config.py`.
+- **Mídias em diretório temporário**: os `.mp3` não são mais escritos na raiz do projeto e somem sozinhos ao final.
+- **Rede com limites**: toda requisição tem timeout e retry — antes um servidor lento podia travar a execução indefinidamente.
+- **Falhas isoladas**: um erro em uma palavra é registrado e reportado no fim; o baralho é gerado com o restante.
 
 ---
 
 ## 🛠️ Pré-requisitos
 
-*   **Python 3.9** ou superior.
-*   Conexão com a internet (para TTS, scraping e API do Gemini).
-*   **Opcional**: [LM Studio](https://lmstudio.ai/) instalado e rodando com um modelo local se não for usar a API do Gemini.
+- **Python 3.10** ou superior.
+- Conexão com a internet (TTS, scraping e API do LLM).
+- **Opcional**: [LM Studio](https://lmstudio.ai/) rodando localmente, para usar um modelo sem nuvem.
 
 ---
 
-## ⚙️ Instalação e Configuração
+## ⚙️ Instalação
 
-1.  **Clone o repositório ou navegue até a pasta do projeto**:
-    ```bash
-    cd manki
-    ```
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e .                 # ou: pip install -r requirements.txt
+```
 
-2.  **Crie e ative um ambiente virtual**:
-    *   No macOS/Linux:
-        ```bash
-        python3 -m venv .venv
-        source .venv/bin/activate
-        ```
-    *   No Windows:
-        ```cmd
-        python -m venv .venv
-        .venv\Scripts\activate
-        ```
+Copie `.env.example` para `.env` e preencha a chave do provedor que for usar:
 
-3.  **Instale as dependências**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+cp .env.example .env
+```
 
-4.  **Configuração de Variáveis de Ambiente**:
-    Se você deseja usar o **Google Gemini**, crie um arquivo chamado `.env` na raiz do projeto e insira sua chave de API:
-    ```env
-    GEMINI_API_KEY="SUA_CHAVE_API_AQUI"
-    ```
-    
-    *Nota: Se preferir usar um modelo local rodando no **LM Studio**, configure `USE_GEMINI = False` no arquivo `config.py`.*
+```env
+MANKI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sua_chave_aqui
+```
+
+Para usar o LM Studio não é preciso chave: `MANKI_PROVIDER=lmstudio`.
 
 ---
 
 ## 🎯 Como Usar
 
-Você pode usar o **Manki** de duas formas: através de um arquivo de entrada (recomendado e mais flexível) ou de forma interativa via terminal.
+### Arquivo de entrada (recomendado)
 
-### Opção A: Usando arquivo de entrada (Recomendado)
+Crie um `input.txt` com uma palavra por linha, opcionalmente com uma frase customizada após `:` ou `：`. Linhas vazias e iniciadas por `#` são ignoradas:
 
-Esta opção permite gerar flashcards em lote e definir **frases de exemplo customizadas** para cada caractere.
+```text
+作弊: 你真的作弊了
+亮: 还真能亮
+性格: 挺有性格
+# sem frase customizada: a IA cria uma focada em HSK 3
+减肥
+```
 
-1. Crie um arquivo de texto (por padrão chamado `input.txt`) na raiz do projeto.
-2. Escreva as palavras e frases no formato `palavra: frase` (uma por linha). Você também pode passar apenas a palavra e deixar a IA gerar a frase para você. Linhas em branco ou iniciadas com `#` são ignoradas.
+```bash
+manki                    # lê input.txt
+manki meus_cards.txt     # outro arquivo
+python -m manki          # equivalente, sem instalar o console script
+python main.py           # atalho compatível com a versão anterior
+```
 
-   **Exemplo de `input.txt`**:
-   ```text
-   作弊: 你真的作弊了
-   亮: 还真能亮
-   性格: 挺有性格
-   # Esta palavra não tem frase customizada; a IA criará uma focada em HSK 3
-   减肥
-   散会: 我说散会了吗
-   ```
+### Palavras direto no terminal
 
-3. Com o ambiente virtual ativo, execute o script principal. Ele detectará automaticamente o arquivo `input.txt` na raiz:
-   ```bash
-   python main.py
-   ```
+```bash
+manki --words 电脑 苹果 飞机
+```
 
-   *Dica: Você também pode usar um arquivo com outro nome e passá-lo como argumento:*
-   ```bash
-   python main.py meus_cards.txt
-   ```
+Sem arquivo e sem `--words`, o programa pergunta as palavras interativamente.
+
+### Opções
+
+| Opção | Descrição |
+| --- | --- |
+| `-p, --provider` | `deepseek`, `groq`, `lmstudio`, `openai` ou `gemini` |
+| `-m, --model` | Modelo específico (sobrescreve o padrão do provedor) |
+| `-o, --output` | Caminho do `.apkg` gerado (padrão: `flashcards.apkg`) |
+| `-d, --deck` | Nome do baralho no Anki (padrão: `Mandarim`) |
+| `-j, --workers` | Palavras processadas em paralelo (padrão: 4) |
+| `--dry-run` | Mostra as palavras interpretadas sem chamar nenhuma API |
+| `--log-level` | `DEBUG`, `INFO`, `WARNING` ou `ERROR` |
+
+Tudo também pode vir do ambiente: `MANKI_PROVIDER`, `MANKI_MODEL`, `MANKI_BASE_URL`, `MANKI_DECK_NAME`, `MANKI_OUTPUT`, `MANKI_WORKERS`, `MANKI_TIMEOUT`, `MANKI_LOG_LEVEL`.
+
+**Códigos de saída**: `0` sucesso · `1` erro fatal (configuração, entrada ou exportação) · `2` baralho gerado com falhas parciais.
 
 ---
 
-### Opção B: Entrada interativa via Terminal
+## 🧪 Testes
 
-Se o arquivo `input.txt` (ou o especificado) não for encontrado, o script entrará automaticamente no modo interativo:
+```bash
+pip install -e ".[dev]"
+pytest
+```
 
-1. Execute o script:
-   ```bash
-   python main.py
-   ```
-2. Digite as palavras que deseja processar, separadas por espaços:
-   ```text
-   Insira as palavras (separadas por espaços): 电脑 苹果 飞机
-   ```
+Os testes usam dublês das portas do domínio — não fazem chamadas de rede nem consomem créditos de API.
 
 ---
 
-### Processamento e Importação
+## 📥 Importando no Anki
 
-Para qualquer uma das opções acima, o programa irá:
-1. Consultar a IA para obter ou validar as frases de exemplo, pinyin correspondente e traduções.
-2. Gerar os áudios `.mp3` correspondentes para a palavra e para a frase.
-3. Buscar na web as animações de ordem dos traços dos caracteres.
-4. Adicionar os cartões e gerar o arquivo `flashcards.apkg` na raiz do projeto.
-
-Para utilizar no Anki:
-- Abra o **Anki** no computador, vá em **Arquivo > Importar...** e escolha o arquivo `flashcards.apkg`.
+Abra o **Anki**, vá em **Arquivo > Importar...** e escolha o `flashcards.apkg` gerado.

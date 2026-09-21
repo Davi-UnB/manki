@@ -1,8 +1,2 @@
-requests
-lxml
-gTTS
-pydantic
-openai
-google-genai
-python-dotenv
-genanki
+# Fonte da verdade das dependências: pyproject.toml
+-e .
